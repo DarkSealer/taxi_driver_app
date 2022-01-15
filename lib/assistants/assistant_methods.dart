@@ -1,0 +1,44 @@
+import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
+import 'package:taxi_driver_app/datahandler/appdata.dart';
+import 'package:taxi_driver_app/models/address.dart';
+
+import '/assistants/requestassistant.dart';
+import '/configmaps.dart';
+
+class AssistantMethods {
+  // decode the coordinate into a readable address
+  static Future<String> searchCoordinateAddress(
+      Position position, context) async {
+    String placeAddress = "";
+    String st1, st2, st3, placeId;
+    String url =
+        "https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$mapKey";
+
+    var response = await RequestAssistant.getRequest(url);
+
+    if (response != "failed") {
+      // placeAddress = response["results"][0]["formatted_address"];
+      st1 = response["results"][0]["address_components"][3]
+          ["long_name"]; // localitate
+      st2 = response["results"][0]["address_components"][1]
+          ["long_name"]; // strada
+      st3 = response["results"][0]["address_components"][6]
+          ["long_name"]; // cod postal
+      placeId = response["results"][0]["place_id"];
+      placeAddress = st1 + ", " + st2 + ", " + st3;
+
+      Address userPickUpAddress = new Address(
+          placeFormattedAddress: placeAddress,
+          placeName: placeAddress,
+          placeId: placeId,
+          latitude: position.latitude,
+          longitude: position.longitude);
+
+      Provider.of<AppData>(context, listen: false)
+          .updatePickUpLocationAddress(userPickUpAddress);
+    }
+
+    return placeAddress;
+  }
+}

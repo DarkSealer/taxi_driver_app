@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "244268029060",
+    "firebase_url": "https://taxiapp-62c08-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "taxiapp-62c08",
+    "storage_bucket": "taxiapp-62c08.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:244268029060:android:22768260bd6d870c745ed1",
+        "android_client_info": {
+          "package_name": "com.geektec.taxi_driver_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "244268029060-8cnhviqenoefms57qji11lthncdk9ifj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCo8Q1TZwsdA1ZI16dF7AZJw2fe0W2Ngvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "244268029060-8cnhviqenoefms57qji11lthncdk9ifj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

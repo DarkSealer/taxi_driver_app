@@ -5,8 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:taxi_driver_app/assistants/requestassistant.dart';
 import 'package:taxi_driver_app/configmaps.dart';
 import 'package:taxi_driver_app/datahandler/appdata.dart';
+import 'package:taxi_driver_app/models/address.dart';
 import 'package:taxi_driver_app/models/place_predictions.dart';
 import 'package:taxi_driver_app/widgets/dividerwidget.dart';
+import 'package:taxi_driver_app/widgets/progressdialog.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({Key? key}) : super(key: key);
@@ -232,7 +234,13 @@ class PredictionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return TextButton(
+      onPressed: () {
+        getPlaceAddressDetails(
+          placePredictions.place_id,
+          context,
+        );
+      },
       child: Column(
         children: [
           const SizedBox(
@@ -281,5 +289,39 @@ class PredictionTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void getPlaceAddressDetails(String placeId, context) async {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) =>
+            ProgressDialog(message: "Setting Dropoff. Please wait..."));
+
+    String placeDetailsUrl =
+        "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=$mapKey";
+
+    var res = await RequestAssistant.getRequest(placeDetailsUrl);
+
+    Navigator.pop(context);
+
+    if (res == "failed") {
+      return;
+    }
+
+    if (res["status"] == "OK") {
+      Address address = Address(
+        placeId: placeId,
+        placeFormattedAddress: res["result"]["formatted_address"],
+        placeName: res["result"]["name"],
+        latitude: res["result"]["geometry"]["location"]["lat"],
+        longitude: res["result"]["geometry"]["location"]["lng"],
+      );
+
+      Provider.of<AppData>(context, listen: false)
+          .updateDropOffLocationAddress(address);
+      print("This is the drop off location: ${address.placeName}");
+
+      Navigator.pop(context, "obtainDirection");
+    }
   }
 }

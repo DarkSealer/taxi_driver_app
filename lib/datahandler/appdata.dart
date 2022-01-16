@@ -4,9 +4,15 @@ import '/models/address.dart';
 
 class AppData extends ChangeNotifier {
   late Address? pickUpLocation = null;
+  late Address? dropOffLocation = null;
 
-  void updatePickUpLocationAddress(Address pickupAddress) {
-    pickUpLocation = pickupAddress;
+  void updatePickUpLocationAddress(Address pickUpAddress) {
+    pickUpLocation = pickUpAddress;
+    notifyListeners();
+  }
+
+  void updateDropOffLocationAddress(Address dropOffAddress) {
+    dropOffLocation = dropOffAddress;
     notifyListeners();
   }
 }

@@ -8,6 +8,7 @@ import 'package:taxi_driver_app/assistants/assistant_methods.dart';
 import 'package:taxi_driver_app/datahandler/appdata.dart';
 import 'package:taxi_driver_app/screens/searchscreen.dart';
 import 'package:taxi_driver_app/widgets/dividerwidget.dart';
+import 'package:taxi_driver_app/widgets/progressdialog.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -236,12 +237,16 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                     const SizedBox(height: 20.0),
                     GestureDetector(
-                      onTap: () {
+                      onTap: () async {
                         // load the search screen
-                        Navigator.push(
+                        var res = await Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => SearchScreen()));
+
+                        if (res == "obtainDirection") {
+                          await getPlaceDirection();
+                        }
                       },
                       child: Container(
                         decoration: BoxDecoration(
@@ -349,5 +354,27 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> getPlaceDirection() async {
+    var initialPos =
+        Provider.of<AppData>(context, listen: false).pickUpLocation;
+    var finalPos = Provider.of<AppData>(context, listen: false).dropOffLocation;
+
+    var pickUpLatLng = LatLng(initialPos!.latitude, initialPos.longitude);
+    var dropOffLatLng = LatLng(finalPos!.latitude, finalPos.longitude);
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) => ProgressDialog(
+              message: "Please wait...",
+            ));
+
+    var details = await AssistantMethods.obtainDirectionsDetails(
+        pickUpLatLng, dropOffLatLng);
+
+    Navigator.pop(context);
+
+    print("This is Encoded Points: ${details!.encodedPoints}");
   }
 }

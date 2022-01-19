@@ -65,4 +65,20 @@ class AssistantMethods {
 
     return directionDetails;
   }
+
+  // TODO - de modificat valoarea initiala (0.20) pentru modificarea pretului
+  static int calculateFares(DirectionDetails directionDetails) {
+    // in terms of USD
+    double timeTraveledFare =
+        (directionDetails.durationValue / 60) * 0.20; // 0.20$ / minute
+    double distanceTraveledFare =
+        (directionDetails.distanceValue / 1000) * 0.20; // 0.20$ / km
+    // directionDetails.durationValue * 0.20;
+
+    double totalPriceAmount = timeTraveledFare + distanceTraveledFare;
+
+    // 1$ = 160RS
+    //double totalLocalAmount = totalPriceAmount * 160
+    return totalPriceAmount.truncate();
+  }
 }

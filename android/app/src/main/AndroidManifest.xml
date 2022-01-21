@@ -1,11 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.geektec.taxi_driver_app">
+    package="com.geektec.taxi_rider_app">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
    <application
-        android:label="taxi_driver_app"
+        android:label="taxi_rider_app"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

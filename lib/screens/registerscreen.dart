@@ -1,8 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:taxi_driver_app/main.dart';
-import 'package:taxi_driver_app/screens/mainscreen.dart';
-import 'package:taxi_driver_app/widgets/progressdialog.dart';
+
+import '/main.dart';
+import '/screens/mainscreen.dart';
+import '/widgets/progressdialog.dart';
 
 import '/screens/loginscreen.dart';
 

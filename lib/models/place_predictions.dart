@@ -1,5 +1,3 @@
-import 'package:taxi_driver_app/main.dart';
-
 class PlacePredictions {
   String secondary_text = "";
   String main_text = "";

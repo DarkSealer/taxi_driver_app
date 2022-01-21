@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:taxi_driver_app/widgets/progressDialog.dart';
+import '/widgets/progressDialog.dart';
 
 import '../main.dart';
 import 'registerscreen.dart';

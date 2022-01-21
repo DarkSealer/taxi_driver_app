@@ -1,4 +1,4 @@
-package com.geektec.taxi_driver_app
+package com.geektec.taxi_rider_app
 
 import io.flutter.embedding.android.FlutterActivity
 

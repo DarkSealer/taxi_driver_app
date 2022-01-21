@@ -1,4 +1,4 @@
-# taxi_driver_app
+# taxi_rider_app
 
 A new Flutter project.
 

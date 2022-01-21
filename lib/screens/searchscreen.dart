@@ -2,13 +2,14 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:taxi_driver_app/assistants/requestassistant.dart';
-import 'package:taxi_driver_app/configmaps.dart';
-import 'package:taxi_driver_app/datahandler/appdata.dart';
-import 'package:taxi_driver_app/models/address.dart';
-import 'package:taxi_driver_app/models/place_predictions.dart';
-import 'package:taxi_driver_app/widgets/dividerwidget.dart';
-import 'package:taxi_driver_app/widgets/progressdialog.dart';
+
+import '/assistants/requestassistant.dart';
+import '/configmaps.dart';
+import '/datahandler/appdata.dart';
+import '/models/address.dart';
+import '/models/place_predictions.dart';
+import '/widgets/dividerwidget.dart';
+import '/widgets/progressdialog.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({Key? key}) : super(key: key);

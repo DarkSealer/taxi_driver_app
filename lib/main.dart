@@ -9,7 +9,7 @@ import '/screens/loginscreen.dart';
 import '/screens/registerscreen.dart';
 import 'datahandler/appdata.dart';
 
-DatabaseReference userRef = FirebaseDatabase.instance.ref();
+DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users");
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

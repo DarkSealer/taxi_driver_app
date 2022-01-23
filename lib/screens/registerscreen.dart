@@ -246,7 +246,7 @@ class RegisterScreen extends StatelessWidget {
       // print(
       //     "Name: ${nameTextEditingController.text}, Phone: ${phoneTextEditingController.text}, Email: ${emailTextEditingController.text}");
 
-      userRef.child("users").child(firebaseUser.uid).set(userDataMap);
+      userRef.child(firebaseUser.uid).set(userDataMap);
 
       // display success message
       displayToastMessage(

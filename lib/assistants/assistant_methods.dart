@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:geolocator/geolocator.dart';
@@ -97,5 +99,11 @@ class AssistantMethods {
         userCurrentInfo = Users.fromSnapshot(value.snapshot);
       }
     });
+  }
+
+  static double createRandomNumber(int num) {
+    var random = Random();
+    int randNumber = random.nextInt(num);
+    return randNumber.toDouble();
   }
 }

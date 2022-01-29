@@ -10,6 +10,10 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:taxi_rider_app/main.dart';
+import 'package:taxi_rider_app/widgets/collect_fare_dialog.dart';
+import 'package:taxi_rider_app/widgets/no_driver_available_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '/assistants/assistant_methods.dart';
 import '/configmaps.dart';
@@ -47,9 +51,14 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   double requestRideContainerHeight = 0;
   double searchContainerHeight = 300;
   bool drawerOpen = true;
-  late DatabaseReference rideRequestRef;
+  late DatabaseReference? rideRequestRef;
   bool nearbyAvailableDriverKeysLoaded = false;
   BitmapDescriptor? nearbyIcon;
+  late List<NearbyAvailableDrivers> availableDrivers;
+  String state = "normal";
+  double driverDetailsContainerHeight = 0;
+  late StreamSubscription? rideStreamSubscription;
+  bool isRequestingPositionDetails = false;
 
   static const colorizeColors = [
     Colors.green,
@@ -73,6 +82,16 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     });
   }
 
+  void displayDriverDetailsContainer() {
+    setState(() {
+      drawerOpen = false;
+      requestRideContainerHeight = 0;
+      rideDetailsContainerHeight = 0;
+      bottomPaddingOfMap = 290;
+      driverDetailsContainerHeight = 310;
+    });
+  }
+
   void resetApp() {
     setState(() {
       drawerOpen = true;
@@ -85,6 +104,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       markersSet.clear();
       circlesSet.clear();
       pLineCoordinates.clear();
+
+      statusRide = '';
+      driverName = '';
+      driverPhone = '';
+      carDetailsDriver = '';
+      rideStatus = 'Driver is Coming';
+      driverDetailsContainerHeight = 0;
     });
 
     locatePosition();
@@ -167,13 +193,160 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       "dropoff_address": dropOff!.placeName,
     };
 
-    rideRequestRef.set(riderInfoMap);
+    rideRequestRef!.set(riderInfoMap);
+
+    rideStreamSubscription = rideRequestRef!.onValue.listen((event) async {
+      if (event.snapshot.value == null) {
+        return;
+      }
+
+      Map values = event.snapshot.value as Map<dynamic, dynamic>;
+
+      // update the car details
+      if (values['car_details'] != null) {
+        setState(() {
+          carDetailsDriver = values['car_details'].toString();
+        });
+      }
+
+      // update the driver name
+      if (values['driver_name'] != null) {
+        setState(() {
+          driverName = values['driver_name'].toString();
+        });
+      }
+
+      // update the driver phone
+      if (values['driver_location']['latitude'] != null) {
+        double driverLat =
+            double.parse(values['driver_location']['latitude'].toString());
+        double driverLng =
+            double.parse(values['driver_location']['longitude'].toString());
+
+        LatLng driverCurrentLocation = LatLng(driverLat, driverLng);
+
+        // calculeaza & actualizeaza timpul pana ajunge soferul la client
+        if (statusRide == "accepted") {
+          updateRideTimeToPickUpLoc(driverCurrentLocation);
+        }
+        // dupa ce a fost preluat clientul, se calculeaza / actualizeaza timpul pana la destinatie
+        else if (statusRide == 'onride') {
+          updateRideTimeToDropOffLoc(driverCurrentLocation);
+        }
+        //
+        else if (statusRide == 'arrived') {
+          setState(() {
+            rideStatus = 'Driver has Arrived';
+          });
+        }
+      }
+
+      if (values['driver_phone'] != null) {
+        setState(() {
+          driverPhone = values['driver_phone'].toString();
+        });
+      }
+
+      // update the status of the ride
+      if (values['status'] != null) {
+        statusRide = values['status'].toString();
+      }
+
+      if (statusRide == 'accepted') {
+        displayDriverDetailsContainer();
+        Geofire.stopListener();
+        deleteGeofireMarkers();
+      }
+
+      if (statusRide == 'ended') {
+        if (values['fares'] != null) {
+          int fare = int.parse(values['fares'].toString());
+          var res = await showDialog(
+            context: context,
+            builder: (BuildContext context) =>
+                CollectFareDialog(paymentMethod: 'cash', fareAmount: fare),
+          );
+
+          if (res == 'close') {
+            rideRequestRef!.onDisconnect();
+            rideRequestRef = null;
+            rideStreamSubscription!.cancel();
+            rideStreamSubscription = null;
+            resetApp();
+          }
+        }
+      }
+    });
+  }
+
+  void deleteGeofireMarkers() {
+    setState(() {
+      markersSet
+          .removeWhere((element) => element.markerId.value.contains('driver'));
+    });
+  }
+
+  void updateRideTimeToPickUpLoc(LatLng driverCurrentLocation) async {
+    if (!isRequestingPositionDetails) {
+      isRequestingPositionDetails = true;
+
+      var positionUserLatLng = LatLng(
+        currentPosition.latitude,
+        currentPosition.longitude,
+      );
+
+      // obtine detaliile calatoriei (timpul de ajungere a soferului la adresa clientului)
+      var details = await AssistantMethods.obtainDirectionsDetails(
+        driverCurrentLocation,
+        positionUserLatLng,
+      );
+
+      if (details == null) {
+        return;
+      }
+
+      setState(() {
+        rideStatus = 'Driver is Coming - ${details.durationText}';
+      });
+
+      isRequestingPositionDetails = false;
+    }
+  }
+
+  void updateRideTimeToDropOffLoc(LatLng driverCurrentLocation) async {
+    if (!isRequestingPositionDetails) {
+      isRequestingPositionDetails = true;
+
+      var positionUserLatLng =
+          Provider.of<AppData>(context, listen: false).dropOffLocation;
+      var dropOffLatLng =
+          LatLng(positionUserLatLng!.latitude, positionUserLatLng.longitude);
+
+      // obtine detaliile calatoriei (timpul de ajungere a soferului la adresa clientului)
+      var details = await AssistantMethods.obtainDirectionsDetails(
+        driverCurrentLocation,
+        dropOffLatLng,
+      );
+
+      if (details == null) {
+        return;
+      }
+
+      setState(() {
+        rideStatus = 'Going to Destination - ${details.durationText}';
+      });
+
+      isRequestingPositionDetails = false;
+    }
   }
 
   // cancel the request
   void cancelRideRequest() {
     // removes the entry from db
-    rideRequestRef.remove();
+    rideRequestRef!.remove();
+    setState(() {
+      state = "normal";
+    });
   }
 
   @override
@@ -182,9 +355,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
     return Scaffold(
       key: scaffoldKey,
-      appBar: AppBar(
-        title: const Text("MainScreen"),
-      ),
+      // appBar: AppBar(
+      //   title: const Text("MainScreen"),
+      // ),
       drawer: Container(
         color: Colors.white,
         width: 255,
@@ -305,7 +478,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
             },
           ),
           // Hamburger Button for Drawer
-          /*Positioned(
+          Positioned(
             top: 38.0,
             left: 22,
             child: GestureDetector(
@@ -341,7 +514,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
-          */
+
+          // Search UI
           Positioned(
             left: 0,
             right: 0,
@@ -458,7 +632,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                               const SizedBox(
                                 height: 4,
                               ),
-                              Text(
+                              const Text(
                                 "Your living home address",
                                 style: TextStyle(
                                   color: Colors.black54,
@@ -507,6 +681,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
+          // Ride details UI
           Positioned(
             left: 0,
             right: 0,
@@ -631,7 +806,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                         child: RaisedButton(
                           onPressed: () {
                             // call a taxi
+                            setState(() {
+                              state = "requesting";
+                            });
                             displayRequestRideContainer();
+                            availableDrivers =
+                                GeofireAssistant.nearbyAvailableDriversList;
+                            searchNearestDriver();
                           },
                           color: Theme.of(context).accentColor,
                           child: Padding(
@@ -662,6 +843,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
+          // Cancel UI
           Positioned(
             bottom: 0,
             left: 0,
@@ -762,6 +944,183 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
+          // Display Assigned Driver Info
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    spreadRadius: 0.5,
+                    blurRadius: 16,
+                    color: Colors.black54,
+                    offset: Offset(0.7, 0.7),
+                  ),
+                ],
+              ),
+              height: driverDetailsContainerHeight,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(
+                      height: 6.0,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          rideStatus,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontFamily: 'Brand',
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(
+                      height: 22,
+                    ),
+                    const Divider(
+                      height: 2,
+                      thickness: 2,
+                    ),
+                    const SizedBox(
+                      height: 22,
+                    ),
+                    Text(
+                      carDetailsDriver,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                    Text(
+                      driverName,
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const Divider(
+                      height: 2,
+                      thickness: 2,
+                    ),
+                    const SizedBox(
+                      height: 22,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // call button
+                        // Column(
+                        //   crossAxisAlignment: CrossAxisAlignment.center,
+                        //   children: [
+                        //     Container(
+                        //       height: 55,
+                        //       width: 55,
+                        //       decoration: BoxDecoration(
+                        //         borderRadius: const BorderRadius.all(
+                        //           Radius.circular(26),
+                        //         ),
+                        //         border:
+                        //             Border.all(width: 2, color: Colors.grey),
+                        //       ),
+                        //       child: const Icon(Icons.call),
+                        //     ),
+                        //     const SizedBox(
+                        //       height: 10,
+                        //     ),
+                        //     const Text('Call'),
+                        //   ],
+                        // ),
+                        // // Details button
+                        // Column(
+                        //   crossAxisAlignment: CrossAxisAlignment.center,
+                        //   children: [
+                        //     Container(
+                        //       height: 55,
+                        //       width: 55,
+                        //       decoration: BoxDecoration(
+                        //         borderRadius: const BorderRadius.all(
+                        //           Radius.circular(26),
+                        //         ),
+                        //         border:
+                        //             Border.all(width: 2, color: Colors.grey),
+                        //       ),
+                        //       child: const Icon(Icons.list),
+                        //     ),
+                        //     const SizedBox(
+                        //       height: 10,
+                        //     ),
+                        //     const Text('Details'),
+                        //   ],
+                        // ),
+                        // // cancel button
+                        // Column(
+                        //   crossAxisAlignment: CrossAxisAlignment.center,
+                        //   children: [
+                        //     Container(
+                        //       height: 55,
+                        //       width: 55,
+                        //       decoration: BoxDecoration(
+                        //         borderRadius: const BorderRadius.all(
+                        //           Radius.circular(26),
+                        //         ),
+                        //         border:
+                        //             Border.all(width: 2, color: Colors.grey),
+                        //       ),
+                        //       child: const Icon(Icons.close),
+                        //     ),
+                        //     const SizedBox(
+                        //       height: 10,
+                        //     ),
+                        //     const Text('Cancel'),
+                        //   ],
+                        // ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: RaisedButton(
+                            onPressed: () {
+                              // call the phone number
+                              launch(('tel://${driverPhone}'));
+                            },
+                            color: Colors.pink,
+                            child: Padding(
+                              padding: const EdgeInsets.all(17),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: const [
+                                  Text(
+                                    'Call Driver',
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                  Icon(
+                                    Icons.call,
+                                    color: Colors.white,
+                                    size: 26,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -795,6 +1154,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     // decode the encoded polyline points
     List<PointLatLng> decodePolylinePointsResult =
         polylinePoints.decodePolyline(details.encodedPoints);
+
+    pLineCoordinates.clear();
 
     if (decodePolylinePointsResult.isNotEmpty) {
       for (var pointLatLng in decodePolylinePointsResult) {
@@ -987,5 +1348,81 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         nearbyIcon = value;
       });
     }
+  }
+
+  void noDriverFound() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => NoDriverAvailableDialog(),
+      barrierDismissible: false,
+    );
+  }
+
+  void searchNearestDriver() {
+    // if there is no driver available
+    if (availableDrivers.length == 0) {
+      cancelRideRequest();
+      resetApp();
+      noDriverFound();
+      return;
+    }
+
+    // daca exista soferi disponibili in zona
+    var driver = availableDrivers[0];
+    notifyDriver(driver);
+    availableDrivers.removeAt(0);
+  }
+
+  // send notification to the driver
+  void notifyDriver(NearbyAvailableDrivers driver) {
+    // change the newRide value to the rideRequestId
+    driverRef.child(driver.key).child("newRide").set(rideRequestRef!.key);
+
+    // get the token of the driver
+    driverRef.child(driver.key).child("token").get().then((snap) {
+      if (snap.value != null) {
+        String token = snap.value.toString();
+        AssistantMethods.sendNotificationToDriver(
+          token,
+          context,
+          rideRequestRef!.key!,
+        );
+      } else {
+        return;
+      }
+
+      // se porneste timerul pentru driverul care este ales
+      const oneSecondPassed = Duration(seconds: 1);
+      var timer = Timer.periodic(oneSecondPassed, (timer) {
+        if (state != "requesting") {
+          driverRef.child(driver.key).child('newRide').set('cancelled');
+          cancelTimer(driver, timer);
+        }
+
+        driverRequestTimeout -= 1;
+
+        // daca soferul a acceptat comanda inainte de timeout, anuleaza timer
+        driverRef.child(driver.key).child('newRide').onValue.listen((event) {
+          if (event.snapshot.value.toString() == 'accepted') {
+            cancelTimer(driver, timer);
+          }
+        });
+
+        // daca driverul nu raspunde in timpul setat, anuleaza comanda pentru acesta
+        if (driverRequestTimeout == 0) {
+          driverRef.child(driver.key).child("newRide").set("timeout");
+          cancelTimer(driver, timer);
+
+          // notifica sofer nou
+          searchNearestDriver();
+        }
+      });
+    });
+  }
+
+  void cancelTimer(NearbyAvailableDrivers driver, Timer timer) {
+    driverRef.child(driver.key).child("newRide").onDisconnect();
+    driverRequestTimeout = initDriverRequestTimeout;
+    timer.cancel();
   }
 }

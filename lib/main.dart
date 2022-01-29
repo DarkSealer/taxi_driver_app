@@ -10,6 +10,7 @@ import '/screens/registerscreen.dart';
 import 'datahandler/appdata.dart';
 
 DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users");
+DatabaseReference driverRef = FirebaseDatabase.instance.ref().child("drivers");
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

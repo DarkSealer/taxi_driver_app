@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,6 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 
 import '/datahandler/appdata.dart';
 import '/models/address.dart';
@@ -31,7 +33,7 @@ class AssistantMethods {
           ["long_name"]; // localitate
       st2 = response["results"][0]["address_components"][1]
           ["long_name"]; // strada
-      st3 = response["results"][0]["address_components"][6]
+      st3 = response["results"][0]["address_components"][5]
           ["long_name"]; // cod postal
       placeId = response["results"][0]["place_id"];
       placeAddress = st1 + ", " + st2 + ", " + st3;
@@ -47,6 +49,8 @@ class AssistantMethods {
           .updatePickUpLocationAddress(userPickUpAddress);
     }
 
+    print("This little shit failed");
+
     return placeAddress;
   }
 
@@ -58,6 +62,7 @@ class AssistantMethods {
     var res = await RequestAssistant.getRequest(directionUrl);
 
     if (res == "failed") {
+      print("This shit failed");
       return null;
     }
 
@@ -89,7 +94,7 @@ class AssistantMethods {
   }
 
   static void getCurrentOnlineUserInfo() async {
-    firebaseUser = await FirebaseAuth.instance.currentUser;
+    firebaseUser = (await FirebaseAuth.instance.currentUser)!;
     String userId = firebaseUser!.uid;
     DatabaseReference reference =
         FirebaseDatabase.instance.ref().child("users").child(userId);
@@ -105,5 +110,67 @@ class AssistantMethods {
     var random = Random();
     int randNumber = random.nextInt(num);
     return randNumber.toDouble();
+  }
+
+  static Future<void> sendNotificationToDriver(
+    String token,
+    context,
+    String ride_request_id,
+  ) async {
+    var destination =
+        Provider.of<AppData>(context, listen: false).dropOffLocation;
+    // Map<String, String> headerMap = {
+    //   "Content-Type": 'application/json',
+    //   'Authorization': serverToken,
+    // };
+
+    // Map notificationMap = {
+    //   'body': 'DropOff Address: ${destination!.placeName}',
+    //   'title': 'New ride Request',
+    // };
+
+    // Map dataMap = {
+    //   ''
+    // };
+
+    if (token == null) {
+      print('Unable to send FCM message, no token exists.');
+      return;
+    }
+
+    try {
+      await http.post(
+        Uri.parse('https://fcm.googleapis.com/fcm/send'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': serverToken,
+        },
+        body: constructFCMPayload(token, ride_request_id),
+      );
+      print('FCM request for device sent!');
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  static String constructFCMPayload(String token, String rideRequestId) {
+    var res = jsonEncode({
+      'token': token,
+      'notification': {
+        "body": "You have a new ride request! Tap here to view in the app.",
+        "title": "New Ride Request"
+      },
+      "priority": "high",
+      'data': {
+        "click_action": "FLUTTER_NOTIFIATION_CLICK",
+        "id": "1",
+        "status": "done",
+        "ride_request_id": rideRequestId,
+      },
+      'to': token,
+    });
+
+    print(res.toString());
+    return res;
   }
 }

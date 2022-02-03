@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:taxi_rider_app/screens/about_screen.dart';
 
 import '/screens/mainscreen.dart';
 import '/screens/loginscreen.dart';
@@ -10,7 +11,9 @@ import '/screens/registerscreen.dart';
 import 'datahandler/appdata.dart';
 
 DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users");
-DatabaseReference driverRef = FirebaseDatabase.instance.ref().child("drivers");
+DatabaseReference driversRef = FirebaseDatabase.instance.ref().child("drivers");
+DatabaseReference newRequestRef =
+    FirebaseDatabase.instance.ref().child("rideRequests");
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,8 +42,20 @@ class MyApp extends StatelessWidget {
           MainScreen.idScreen: (context) => const MainScreen(),
           RegisterScreen.idScreen: (context) => RegisterScreen(),
           LoginScreen.idScreen: (context) => LoginScreen(),
+          AboutScreen.idScreen: (context) => const AboutScreen(),
         },
         debugShowCheckedModeBanner: false,
+      ),
+    );
+  }
+
+  void displayToastMessage(String msg, BuildContext context) {
+    final scaffold = ScaffoldMessenger.of(context);
+    scaffold.showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        action: SnackBarAction(
+            label: 'OK', onPressed: scaffold.hideCurrentSnackBar),
       ),
     );
   }

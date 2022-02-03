@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:taxi_rider_app/assistants/assistant_methods.dart';
 
 import '/main.dart';
 import '/screens/mainscreen.dart';
@@ -136,27 +137,27 @@ class RegisterScreen extends StatelessWidget {
                               r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
                           .hasMatch(emailTextEditingController.text);
                       if (nameTextEditingController.text.length < 4) {
-                        displayToastMessage(
+                        AssistantMethods.displayToastMessage(
                           "Numele trebuie sa contina cel putin 4 caractere",
                           context,
                         );
                         return;
                       } else if (!emailValid) {
-                        displayToastMessage(
+                        AssistantMethods.displayToastMessage(
                           "Te rugam sa introduci o adresa de email valida",
                           context,
                         );
                         return;
                       } else if (phoneTextEditingController.text.length < 10 ||
                           phoneTextEditingController.text.length > 12) {
-                        displayToastMessage(
+                        AssistantMethods.displayToastMessage(
                           "Te rugam sa introduci un numar de telefon valid",
                           context,
                         );
                         return;
                       } else if (passwordTextEditingController.text.length <
                           6) {
-                        displayToastMessage(
+                        AssistantMethods.displayToastMessage(
                           "Te rugam sa introduci o parola de cel putin 6 caractere",
                           context,
                         );
@@ -227,7 +228,7 @@ class RegisterScreen extends StatelessWidget {
             .catchError((errMesg) {
       // inchide panoul de loading
       Navigator.pop(context);
-      displayToastMessage(
+      AssistantMethods.displayToastMessage(
         "Error: $errMesg",
         context,
       );
@@ -249,7 +250,7 @@ class RegisterScreen extends StatelessWidget {
       userRef.child(firebaseUser.uid).set(userDataMap);
 
       // display success message
-      displayToastMessage(
+      AssistantMethods.displayToastMessage(
           "Felicitari. Contul dumneavoastra a fost creat cu succes", context);
 
       // load the MainScreen
@@ -261,18 +262,7 @@ class RegisterScreen extends StatelessWidget {
     // inchide panoul de loading
     Navigator.pop(context);
     // error occured - display error message
-    displayToastMessage("Utilizatorul nu a putut fi creat", context);
-  }
-
-  // display a message with Toast
-  void displayToastMessage(String msg, BuildContext context) {
-    final scaffold = ScaffoldMessenger.of(context);
-    scaffold.showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        action: SnackBarAction(
-            label: 'OK', onPressed: scaffold.hideCurrentSnackBar),
-      ),
-    );
+    AssistantMethods.displayToastMessage(
+        "Utilizatorul nu a putut fi creat", context);
   }
 }

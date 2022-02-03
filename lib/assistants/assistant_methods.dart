@@ -3,10 +3,14 @@ import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:taxi_rider_app/main.dart';
+import 'package:taxi_rider_app/models/history.dart';
 
 import '/datahandler/appdata.dart';
 import '/models/address.dart';
@@ -119,19 +123,6 @@ class AssistantMethods {
   ) async {
     var destination =
         Provider.of<AppData>(context, listen: false).dropOffLocation;
-    // Map<String, String> headerMap = {
-    //   "Content-Type": 'application/json',
-    //   'Authorization': serverToken,
-    // };
-
-    // Map notificationMap = {
-    //   'body': 'DropOff Address: ${destination!.placeName}',
-    //   'title': 'New ride Request',
-    // };
-
-    // Map dataMap = {
-    //   ''
-    // };
 
     if (token == null) {
       print('Unable to send FCM message, no token exists.');
@@ -172,5 +163,69 @@ class AssistantMethods {
 
     print(res.toString());
     return res;
+  }
+
+  static void displayToastMessage(String msg, BuildContext context) {
+    final scaffold = ScaffoldMessenger.of(context);
+    scaffold.showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        action: SnackBarAction(
+            label: 'OK', onPressed: scaffold.hideCurrentSnackBar),
+      ),
+    );
+  }
+
+  static String formatTripDate(String date) {
+    DateTime dateTime = DateTime.parse(date);
+    String formattedDate =
+        '${DateFormat.MMMd().format(dateTime)}, ${DateFormat.y().format(dateTime)} - ${DateFormat.jm().format(dateTime)}';
+    return formattedDate;
+  }
+
+  static void retrieveHistoryInfo(context) {
+    // retrieve and display Trip History
+    // sorteaza istoricum clientului dupa nume
+    print('IN Retrieve History Info');
+    newRequestRef.orderByChild('rider_name').get().then((snap) {
+      // update total number of trip counts to provider
+      if (snap.value != null) {
+        Map<dynamic, dynamic> keys = snap.value as Map<dynamic, dynamic>;
+        int tripCounter = keys.length;
+        Provider.of<AppData>(context, listen: false)
+            .updateTripsCounter(tripCounter);
+
+        // update trip keys to provider
+        List<String> tripHistoryKeys = [];
+        keys.forEach((key, value) {
+          tripHistoryKeys.add(key);
+        });
+        Provider.of<AppData>(context, listen: false)
+            .updateTripKeys(tripHistoryKeys);
+        obtainTripRequestHistoryData(context);
+      }
+    });
+  }
+
+  // TODO - De modificat modul de verificare al istoricului pentru user ASAP
+  static void obtainTripRequestHistoryData(context) {
+    var keys = Provider.of<AppData>(context, listen: false).tripHistoryKeys;
+
+    print('In ObtainTraipRequestHistory');
+    for (String key in keys) {
+      newRequestRef.child(key).get().then((snap) {
+        if (snap.value != null) {
+          newRequestRef.child(key).child('rider_name').get().then((snapshot) {
+            String name = snapshot.value.toString();
+
+            if (name == userCurrentInfo!.name) {
+              var history = History.fromSnapshot(snap);
+              Provider.of<AppData>(context, listen: false)
+                  .updateTripData(history);
+            }
+          });
+        }
+      });
+    }
   }
 }

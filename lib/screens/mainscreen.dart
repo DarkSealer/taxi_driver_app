@@ -11,6 +11,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_rider_app/main.dart';
+import 'package:taxi_rider_app/screens/about_screen.dart';
+import 'package:taxi_rider_app/screens/history_screen.dart';
+import 'package:taxi_rider_app/screens/profile_screen.dart';
+import 'package:taxi_rider_app/screens/rating_screen.dart';
 import 'package:taxi_rider_app/widgets/collect_fare_dialog.dart';
 import 'package:taxi_rider_app/widgets/no_driver_available_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -59,6 +63,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   double driverDetailsContainerHeight = 0;
   late StreamSubscription? rideStreamSubscription;
   bool isRequestingPositionDetails = false;
+  String uName = "";
 
   static const colorizeColors = [
     Colors.green,
@@ -121,8 +126,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
     setState(() {
       searchContainerHeight = 0;
-      rideDetailsContainerHeight = 300;
-      bottomPaddingOfMap = 230;
+      rideDetailsContainerHeight = 340;
+      bottomPaddingOfMap = 360;
       drawerOpen = false;
     });
 
@@ -149,6 +154,10 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     print("This is your Address: $address");
 
     initGeofireListener();
+
+    uName = userCurrentInfo!.name;
+
+    AssistantMethods.retrieveHistoryInfo(context);
   }
 
   static const CameraPosition _kGooglePlex = CameraPosition(
@@ -191,6 +200,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       "rider_phone": userCurrentInfo!.phone,
       "pickup_address": pickUp!.placeName,
       "dropoff_address": dropOff!.placeName,
+      "ride_type": carRideType,
     };
 
     rideRequestRef!.set(riderInfoMap);
@@ -217,7 +227,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       }
 
       // update the driver phone
-      if (values['driver_location']['latitude'] != null) {
+      if (values['driver_location'] != null) {
         double driverLat =
             double.parse(values['driver_location']['latitude'].toString());
         double driverLng =
@@ -267,7 +277,16 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                 CollectFareDialog(paymentMethod: 'cash', fareAmount: fare),
           );
 
+          String driverId = "";
           if (res == 'close') {
+            if (values['driver_id'] != null) {
+              driverId = values['driver_id'].toString();
+            }
+
+            // incarca pagina RatingScreen
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => RatingScreen(driverId: driverId)));
+
             rideRequestRef!.onDisconnect();
             rideRequestRef = null;
             rideStreamSubscription!.cancel();
@@ -385,7 +404,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            "Profile Name",
+                            uName,
                             style: TextStyle(
                               fontSize: 16,
                               fontFamily: "Brand",
@@ -395,40 +414,71 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                           const SizedBox(
                             height: 6,
                           ),
-                          const Text("Visit Profile"),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          const ProfileScreen()));
+                            },
+                            child: const Text("Visit Profile"),
+                          ),
                         ],
                       )
                     ],
                   ),
                 ),
               ),
-              DividerWidget(),
-              SizedBox(height: 12),
+              const DividerWidget(),
+              const SizedBox(height: 12),
               //Drawer Body Controllers
-              const ListTile(
-                leading: Icon(Icons.history),
-                title: Text(
-                  "History",
-                  style: TextStyle(
-                    fontSize: 15,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const HistoryScreen()));
+                },
+                child: const ListTile(
+                  leading: Icon(Icons.history),
+                  title: Text(
+                    "History",
+                    style: TextStyle(
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
-              const ListTile(
-                leading: Icon(Icons.person),
-                title: Text(
-                  "Visit Profile",
-                  style: TextStyle(
-                    fontSize: 15,
+              ListTile(
+                leading: const Icon(Icons.person),
+                title: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const ProfileScreen()));
+                  },
+                  child: const Text(
+                    "Visit Profile",
+                    style: TextStyle(
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
-              const ListTile(
-                leading: Icon(Icons.info),
-                title: Text(
-                  "About",
-                  style: TextStyle(
-                    fontSize: 15,
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamedAndRemoveUntil(
+                      context, AboutScreen.idScreen, (route) => false);
+                },
+                child: const ListTile(
+                  leading: Icon(Icons.info),
+                  title: Text(
+                    "About",
+                    style: TextStyle(
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
@@ -439,7 +489,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                       context, LoginScreen.idScreen, (route) => false);
                 },
                 child: const ListTile(
-                  leading: Icon(Icons.info),
+                  leading: Icon(Icons.logout),
                   title: Text(
                     "Log Out",
                     style: TextStyle(
@@ -514,7 +564,6 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
-
           // Search UI
           Positioned(
             left: 0,
@@ -713,67 +762,267 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                   ),
                   child: Column(
                     children: [
-                      Container(
-                        width: double.infinity,
-                        color: Colors.tealAccent[100],
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                          ),
-                          child: Row(
-                            children: [
-                              Image.asset(
-                                "images/taxi.png",
-                                height: 70,
-                                width: 80,
-                              ),
-                              const SizedBox(
-                                width: 16.0,
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "Car",
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontFamily: "Brand",
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                  Text(
-                                    ((tripDirectionDetails != null)
-                                        ? tripDirectionDetails!.distanceText
-                                        : ''),
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Expanded(
-                                child: Container(),
-                              ),
-                              // display the price
-                              Text(
-                                ((tripDirectionDetails != null)
-                                    ? '\$${AssistantMethods.calculateFares(tripDirectionDetails!)}'
-                                    : ''),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
-                                  fontFamily: "Brand",
-                                  fontWeight: FontWeight.bold,
+                      // bike ride
+                      GestureDetector(
+                        onTap: () {
+                          //
+                          AssistantMethods.displayToastMessage(
+                              "searching bike...", context);
+                          // call a taxi
+                          setState(() {
+                            state = "requesting";
+                            carRideType = 'bike';
+                          });
+                          displayRequestRideContainer();
+                          availableDrivers =
+                              GeofireAssistant.nearbyAvailableDriversList;
+                          searchNearestDriver();
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          // color: Colors.tealAccent[100],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                            ),
+                            child: Row(
+                              children: [
+                                Image.asset(
+                                  "images/bike.png",
+                                  height: 70,
+                                  width: 80,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(
+                                  width: 16.0,
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Bike",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontFamily: "Brand",
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    Text(
+                                      ((tripDirectionDetails != null)
+                                          ? tripDirectionDetails!.distanceText
+                                          : ''),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Expanded(
+                                  child: Container(),
+                                ),
+                                // display the price - for bike
+                                Text(
+                                  ((tripDirectionDetails != null)
+                                      ? '\$${(AssistantMethods.calculateFares(tripDirectionDetails!)) / 2}'
+                                      : ''),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                    fontFamily: "Brand",
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
+
                       const SizedBox(
-                        height: 20,
+                        height: 10,
                       ),
+                      const Divider(
+                        height: 2,
+                        thickness: 2,
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      // uber-go ride
+                      GestureDetector(
+                        onTap: () {
+                          //
+                          AssistantMethods.displayToastMessage(
+                              "searching Uber-Go...", context);
+                          // call a taxi
+                          setState(() {
+                            state = "requesting";
+
+                            carRideType = 'uber-go';
+                          });
+                          displayRequestRideContainer();
+                          availableDrivers =
+                              GeofireAssistant.nearbyAvailableDriversList;
+                          searchNearestDriver();
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          // color: Colors.tealAccent[100],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                            ),
+                            child: Row(
+                              children: [
+                                Image.asset(
+                                  "images/ubergo.png",
+                                  height: 70,
+                                  width: 80,
+                                ),
+                                const SizedBox(
+                                  width: 16.0,
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Uber-Go",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontFamily: "Brand",
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    Text(
+                                      ((tripDirectionDetails != null)
+                                          ? tripDirectionDetails!.distanceText
+                                          : ''),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Expanded(
+                                  child: Container(),
+                                ),
+                                // display the price
+                                Text(
+                                  ((tripDirectionDetails != null)
+                                      ? '\$${AssistantMethods.calculateFares(tripDirectionDetails!)}'
+                                      : ''),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                    fontFamily: "Brand",
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      const Divider(
+                        height: 2,
+                        thickness: 2,
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      // uber-x ride
+                      GestureDetector(
+                        onTap: () {
+                          //
+                          AssistantMethods.displayToastMessage(
+                              "searching Uber-X...", context);
+                          // call a taxi
+                          setState(() {
+                            state = "requesting";
+
+                            carRideType = 'uber-x';
+                          });
+                          displayRequestRideContainer();
+                          availableDrivers =
+                              GeofireAssistant.nearbyAvailableDriversList;
+                          searchNearestDriver();
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          // color: Colors.tealAccent[100],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                            ),
+                            child: Row(
+                              children: [
+                                Image.asset(
+                                  "images/uberx.png",
+                                  height: 70,
+                                  width: 80,
+                                ),
+                                const SizedBox(
+                                  width: 16.0,
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Uber-X",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontFamily: "Brand",
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    Text(
+                                      ((tripDirectionDetails != null)
+                                          ? tripDirectionDetails!.distanceText
+                                          : ''),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Expanded(
+                                  child: Container(),
+                                ),
+                                // display the price
+                                Text(
+                                  ((tripDirectionDetails != null)
+                                      ? '\$${AssistantMethods.calculateFares(tripDirectionDetails!) * 2}'
+                                      : ''),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                    fontFamily: "Brand",
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      const Divider(
+                        height: 2,
+                        thickness: 2,
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
@@ -798,45 +1047,43 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                           ],
                         ),
                       ),
-                      const SizedBox(
-                        height: 24,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: RaisedButton(
-                          onPressed: () {
-                            // call a taxi
-                            setState(() {
-                              state = "requesting";
-                            });
-                            displayRequestRideContainer();
-                            availableDrivers =
-                                GeofireAssistant.nearbyAvailableDriversList;
-                            searchNearestDriver();
-                          },
-                          color: Theme.of(context).accentColor,
-                          child: Padding(
-                            padding: const EdgeInsets.all(17),
-                            child: Row(
-                              children: const [
-                                Text(
-                                  "Request",
-                                  style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                                Icon(
-                                  FontAwesomeIcons.taxi,
-                                  color: Colors.white,
-                                  size: 26,
-                                ),
-                              ],
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            ),
-                          ),
-                        ),
-                      ),
+                      // old call taxi button
+                      // Padding(
+                      //   padding: const EdgeInsets.symmetric(horizontal: 16),
+                      //   child: RaisedButton(
+                      //     onPressed: () {
+                      //       // call a taxi
+                      //       setState(() {
+                      //         state = "requesting";
+                      //       });
+                      //       displayRequestRideContainer();
+                      //       availableDrivers =
+                      //           GeofireAssistant.nearbyAvailableDriversList;
+                      //       searchNearestDriver();
+                      //     },
+                      //     color: Theme.of(context).accentColor,
+                      //     child: Padding(
+                      //       padding: const EdgeInsets.all(17),
+                      //       child: Row(
+                      //         children: const [
+                      //           Text(
+                      //             "Request",
+                      //             style: TextStyle(
+                      //                 fontSize: 20,
+                      //                 fontWeight: FontWeight.bold,
+                      //                 color: Colors.white),
+                      //           ),
+                      //           Icon(
+                      //             FontAwesomeIcons.taxi,
+                      //             color: Colors.white,
+                      //             size: 26,
+                      //           ),
+                      //         ],
+                      //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),
@@ -1369,17 +1616,42 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
     // daca exista soferi disponibili in zona
     var driver = availableDrivers[0];
-    notifyDriver(driver);
-    availableDrivers.removeAt(0);
+
+    // get the type of the car for this driver
+    driversRef
+        .child(driver.key)
+        .child('car_details')
+        .child('type')
+        .get()
+        .then((snap) async {
+      if (await snap.value != null) {
+        String carType = snap.value.toString();
+
+        // daca este acelasi tip de uber cerut de client, notifica soferul
+        if (carType == carRideType) {
+          notifyDriver(driver);
+          availableDrivers.removeAt(0);
+        }
+        // daca nu s-a gasit niciun sofer cu tipul de masina cerut
+        else {
+          AssistantMethods.displayToastMessage(
+              '$carRideType driver not available. Please try again later.',
+              context);
+        }
+      } else {
+        AssistantMethods.displayToastMessage(
+            'No car found. Please try again later.', context);
+      }
+    });
   }
 
   // send notification to the driver
   void notifyDriver(NearbyAvailableDrivers driver) {
     // change the newRide value to the rideRequestId
-    driverRef.child(driver.key).child("newRide").set(rideRequestRef!.key);
+    driversRef.child(driver.key).child("newRide").set(rideRequestRef!.key);
 
     // get the token of the driver
-    driverRef.child(driver.key).child("token").get().then((snap) {
+    driversRef.child(driver.key).child("token").get().then((snap) {
       if (snap.value != null) {
         String token = snap.value.toString();
         AssistantMethods.sendNotificationToDriver(
@@ -1395,14 +1667,14 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       const oneSecondPassed = Duration(seconds: 1);
       var timer = Timer.periodic(oneSecondPassed, (timer) {
         if (state != "requesting") {
-          driverRef.child(driver.key).child('newRide').set('cancelled');
+          driversRef.child(driver.key).child('newRide').set('cancelled');
           cancelTimer(driver, timer);
         }
 
         driverRequestTimeout -= 1;
 
         // daca soferul a acceptat comanda inainte de timeout, anuleaza timer
-        driverRef.child(driver.key).child('newRide').onValue.listen((event) {
+        driversRef.child(driver.key).child('newRide').onValue.listen((event) {
           if (event.snapshot.value.toString() == 'accepted') {
             cancelTimer(driver, timer);
           }
@@ -1410,7 +1682,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
         // daca driverul nu raspunde in timpul setat, anuleaza comanda pentru acesta
         if (driverRequestTimeout == 0) {
-          driverRef.child(driver.key).child("newRide").set("timeout");
+          driversRef.child(driver.key).child("newRide").set("timeout");
           cancelTimer(driver, timer);
 
           // notifica sofer nou
@@ -1421,7 +1693,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   }
 
   void cancelTimer(NearbyAvailableDrivers driver, Timer timer) {
-    driverRef.child(driver.key).child("newRide").onDisconnect();
+    driversRef.child(driver.key).child("newRide").onDisconnect();
     driverRequestTimeout = initDriverRequestTimeout;
     timer.cancel();
   }

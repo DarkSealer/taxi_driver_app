@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:taxi_rider_app/assistants/assistant_methods.dart';
 import '/widgets/progressDialog.dart';
 
 import '../main.dart';
@@ -98,13 +99,13 @@ class LoginScreen extends StatelessWidget {
                               r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
                           .hasMatch(emailTextEditingController.text);
                       if (!emailValid) {
-                        displayToastMessage(
+                        AssistantMethods.displayToastMessage(
                           "Te rugam sa introduci o adresa de email valida.",
                           context,
                         );
                         return;
                       } else if (passwordTextEditingController.text.isEmpty) {
-                        displayToastMessage(
+                        AssistantMethods.displayToastMessage(
                           "Te rugam sa introduci o parola valida.",
                           context,
                         );
@@ -175,7 +176,7 @@ class LoginScreen extends StatelessWidget {
     )
             .catchError((errMsg) {
       Navigator.pop(context); // close the loading widget
-      displayToastMessage("Error: $errMsg", context);
+      AssistantMethods.displayToastMessage("Error: $errMsg", context);
     }))
         .user;
 
@@ -193,13 +194,14 @@ class LoginScreen extends StatelessWidget {
               context, MainScreen.idScreen, (route) => false);
 
           // afiseaza mesaj de autentificare
-          displayToastMessage("Sunteti conectact la contul dvs.", context);
+          AssistantMethods.displayToastMessage(
+              "Sunteti conectact la contul dvs.", context);
           return;
         }
 
         Navigator.pop(context);
         _firebaseAuth.signOut();
-        displayToastMessage(
+        AssistantMethods.displayToastMessage(
             "Acest utilizator nu exista in baza de date", context);
       });
       return;
@@ -207,22 +209,11 @@ class LoginScreen extends StatelessWidget {
 
     Navigator.pop(context);
     // error occured - display error message
-    displayToastMessage(
+    AssistantMethods.displayToastMessage(
         "Va rugam sa verificati credentialele dvs si sa incercati din nou.",
         context);
-    // displayToastMessage(
+    // AssistantMethods.displayToastMessage((
     // "A aparut o eroare. Va rugam sa incercati din nou",
     // context);
-  }
-
-  void displayToastMessage(String msg, BuildContext context) {
-    final scaffold = ScaffoldMessenger.of(context);
-    scaffold.showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        action: SnackBarAction(
-            label: 'OK', onPressed: scaffold.hideCurrentSnackBar),
-      ),
-    );
   }
 }

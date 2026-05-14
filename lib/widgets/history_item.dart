@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
-import '/models/history.dart';
 import 'package:taxi_rider_app/assistants/assistant_methods.dart';
+import 'package:taxi_rider_app/models/history.dart';
 
 class HistoryItem extends StatelessWidget {
   const HistoryItem({Key? key, required this.history}) : super(key: key);

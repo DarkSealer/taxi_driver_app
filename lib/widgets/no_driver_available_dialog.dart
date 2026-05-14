@@ -45,11 +45,15 @@ class NoDriverAvailableDialog extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: RaisedButton(
+                  child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
                     },
-                    color: Theme.of(context).accentColor,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(17),
                       child: Row(

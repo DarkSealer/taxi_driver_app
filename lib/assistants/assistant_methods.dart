@@ -42,7 +42,7 @@ class AssistantMethods {
       placeId = response["results"][0]["place_id"];
       placeAddress = st1 + ", " + st2 + ", " + st3;
 
-      Address userPickUpAddress = new Address(
+      Address userPickUpAddress = Address(
           placeFormattedAddress: placeAddress,
           placeName: placeAddress,
           placeId: placeId,
@@ -98,15 +98,17 @@ class AssistantMethods {
   }
 
   static void getCurrentOnlineUserInfo() async {
-    firebaseUser = (await FirebaseAuth.instance.currentUser)!;
-    String userId = firebaseUser!.uid;
-    DatabaseReference reference =
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+    firebaseUser = user;
+    final String userId = user.uid;
+    final DatabaseReference reference =
         FirebaseDatabase.instance.ref().child("users").child(userId);
 
-    reference.once().then((value) {
-      if (value.snapshot != null) {
-        userCurrentInfo = Users.fromSnapshot(value.snapshot);
-      }
+    reference.once().then((DatabaseEvent value) {
+      userCurrentInfo = Users.fromSnapshot(value.snapshot);
     });
   }
 
@@ -118,14 +120,9 @@ class AssistantMethods {
 
   static Future<void> sendNotificationToDriver(
     String token,
-    context,
-    String ride_request_id,
+    String rideRequestId,
   ) async {
-    var destination =
-        Provider.of<AppData>(context, listen: false).dropOffLocation;
-
-    if (token == null) {
-      print('Unable to send FCM message, no token exists.');
+    if (token.isEmpty) {
       return;
     }
 
@@ -136,11 +133,10 @@ class AssistantMethods {
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': serverToken,
         },
-        body: constructFCMPayload(token, ride_request_id),
+        body: constructFCMPayload(token, rideRequestId),
       );
-      print('FCM request for device sent!');
     } catch (e) {
-      print(e);
+      // FCM request failed; avoid crashing the ride flow.
     }
   }
 

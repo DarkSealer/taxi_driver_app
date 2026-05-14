@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -297,7 +295,9 @@ class PredictionTile extends StatelessWidget {
     showDialog(
         context: context,
         builder: (BuildContext context) =>
-            ProgressDialog(message: "Setting Dropoff. Please wait..."));
+            const ProgressDialog(
+              message: "Setting Dropoff. Please wait...",
+            ));
 
     String placeDetailsUrl =
         "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=$mapKey";

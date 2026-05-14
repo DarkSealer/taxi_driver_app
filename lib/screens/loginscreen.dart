@@ -2,19 +2,94 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:taxi_rider_app/assistants/assistant_methods.dart';
-import '/widgets/progressDialog.dart';
+import 'package:taxi_rider_app/widgets/progressdialog.dart';
 
 import '../main.dart';
-import 'registerscreen.dart';
 import 'mainscreen.dart';
+import 'registerscreen.dart';
 
-class LoginScreen extends StatelessWidget {
-  LoginScreen({Key? key}) : super(key: key);
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
 
   static const String idScreen = "login";
 
-  TextEditingController emailTextEditingController = TextEditingController();
-  TextEditingController passwordTextEditingController = TextEditingController();
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController emailTextEditingController =
+      TextEditingController();
+  final TextEditingController passwordTextEditingController =
+      TextEditingController();
+
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
+  @override
+  void dispose() {
+    emailTextEditingController.dispose();
+    passwordTextEditingController.dispose();
+    super.dispose();
+  }
+
+  Future<void> loginUser(BuildContext context) async {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return const ProgressDialog(
+          message: "Se autentifica. Va rugam asteptati",
+        );
+      },
+      barrierDismissible: false,
+    );
+
+    final UserCredential credential;
+    try {
+      credential = await _firebaseAuth.signInWithEmailAndPassword(
+        email: emailTextEditingController.text,
+        password: passwordTextEditingController.text,
+      );
+    } catch (errMsg) {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      AssistantMethods.displayToastMessage("Error: $errMsg", context);
+      return;
+    }
+
+    final firebaseUser = credential.user;
+    if (firebaseUser != null) {
+      await userRef.child(firebaseUser.uid).get().then((DataSnapshot snap) {
+        if (snap.value != null) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            MainScreen.idScreen,
+            (route) => false,
+          );
+
+          AssistantMethods.displayToastMessage(
+            "Sunteti conectact la contul dvs.",
+            context,
+          );
+          return;
+        }
+
+        Navigator.pop(context);
+        _firebaseAuth.signOut();
+        AssistantMethods.displayToastMessage(
+          "Acest utilizator nu exista in baza de date",
+          context,
+        );
+      });
+      return;
+    }
+
+    Navigator.pop(context);
+    AssistantMethods.displayToastMessage(
+      "Va rugam sa verificati credentialele dvs si sa incercati din nou.",
+      context,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +97,6 @@ class LoginScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(8),
-        // width: double.infinity,
         child: Column(
           children: <Widget>[
             const SizedBox(
@@ -92,12 +166,9 @@ class LoginScreen extends StatelessWidget {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      // print("Login Clicked");
-
-                      // check the fields
-                      bool emailValid = RegExp(
-                              r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
-                          .hasMatch(emailTextEditingController.text);
+                      final bool emailValid = RegExp(
+                        r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+                      ).hasMatch(emailTextEditingController.text);
                       if (!emailValid) {
                         AssistantMethods.displayToastMessage(
                           "Te rugam sa introduci o adresa de email valida.",
@@ -112,7 +183,6 @@ class LoginScreen extends StatelessWidget {
                         return;
                       }
 
-                      // call login method
                       loginUser(context);
                     },
                     child: const SizedBox(
@@ -135,9 +205,11 @@ class LoginScreen extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                // print("Register Clicked");
                 Navigator.pushNamedAndRemoveUntil(
-                    context, RegisterScreen.idScreen, (route) => false);
+                  context,
+                  RegisterScreen.idScreen,
+                  (route) => false,
+                );
               },
               child: const SizedBox(
                 height: 50,
@@ -145,7 +217,6 @@ class LoginScreen extends StatelessWidget {
                   child: Text(
                     "Nu ai cont? Inregistreaza-te aici.",
                     style: TextStyle(
-                      // color: Colors.white,
                       fontSize: 16,
                       fontFamily: "Bold",
                     ),
@@ -157,63 +228,5 @@ class LoginScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  final _firebaseAuth = FirebaseAuth.instance;
-
-  void loginUser(BuildContext context) async {
-    showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return ProgressDialog(message: "Se autentifica. Va rugam asteptati");
-        },
-        barrierDismissible: false);
-
-    final firebaseUser = (await _firebaseAuth
-            .signInWithEmailAndPassword(
-      email: emailTextEditingController.text,
-      password: passwordTextEditingController.text,
-    )
-            .catchError((errMsg) {
-      Navigator.pop(context); // close the loading widget
-      AssistantMethods.displayToastMessage("Error: $errMsg", context);
-    }))
-        .user;
-
-    if (firebaseUser != null) // user logged in
-    {
-      print("User connected");
-
-      //     await userRef.once().then((DataSnapshot snapshot) {
-      //   print('Data : ${snapshot.value}');
-      // });
-
-      await userRef.child(firebaseUser.uid).get().then((DataSnapshot snap) {
-        if (snap.value != null) {
-          Navigator.pushNamedAndRemoveUntil(
-              context, MainScreen.idScreen, (route) => false);
-
-          // afiseaza mesaj de autentificare
-          AssistantMethods.displayToastMessage(
-              "Sunteti conectact la contul dvs.", context);
-          return;
-        }
-
-        Navigator.pop(context);
-        _firebaseAuth.signOut();
-        AssistantMethods.displayToastMessage(
-            "Acest utilizator nu exista in baza de date", context);
-      });
-      return;
-    }
-
-    Navigator.pop(context);
-    // error occured - display error message
-    AssistantMethods.displayToastMessage(
-        "Va rugam sa verificati credentialele dvs si sa incercati din nou.",
-        context);
-    // AssistantMethods.displayToastMessage((
-    // "A aparut o eroare. Va rugam sa incercati din nou",
-    // context);
   }
 }

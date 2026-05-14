@@ -110,7 +110,7 @@ class _RatingScreenState extends State<RatingScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: RaisedButton(
+                child: ElevatedButton(
                   onPressed: () async {
                     DatabaseReference driverRatingRef = FirebaseDatabase
                         .instance
@@ -133,7 +133,10 @@ class _RatingScreenState extends State<RatingScreen> {
 
                     Navigator.pop(context);
                   },
-                  color: Colors.green,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: const [

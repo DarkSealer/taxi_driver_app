@@ -10,5 +10,5 @@ class Address {
       required this.placeFormattedAddress,
       required this.placeName,
       required this.latitude,
-      required this.longitude}) {}
+      required this.longitude});
 }

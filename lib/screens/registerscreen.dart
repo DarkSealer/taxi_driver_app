@@ -3,22 +3,96 @@ import 'package:flutter/material.dart';
 import 'package:taxi_rider_app/assistants/assistant_methods.dart';
 
 import '/main.dart';
+import '/screens/loginscreen.dart';
 import '/screens/mainscreen.dart';
 import '/widgets/progressdialog.dart';
 
-import '/screens/loginscreen.dart';
-
-class RegisterScreen extends StatelessWidget {
-  RegisterScreen({Key? key}) : super(key: key);
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({Key? key}) : super(key: key);
 
   static const String idScreen = "register";
 
-  TextEditingController nameTextEditingController = TextEditingController();
-  TextEditingController emailTextEditingController = TextEditingController();
-  TextEditingController phoneTextEditingController = TextEditingController();
-  TextEditingController passwordTextEditingController = TextEditingController();
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController nameTextEditingController =
+      TextEditingController();
+  final TextEditingController emailTextEditingController =
+      TextEditingController();
+  final TextEditingController phoneTextEditingController =
+      TextEditingController();
+  final TextEditingController passwordTextEditingController =
+      TextEditingController();
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
+  @override
+  void dispose() {
+    nameTextEditingController.dispose();
+    emailTextEditingController.dispose();
+    phoneTextEditingController.dispose();
+    passwordTextEditingController.dispose();
+    super.dispose();
+  }
+
+  Future<void> registerNewUser(BuildContext context) async {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return const ProgressDialog(
+          message: "Se inregistreaza. Va rugam asteptati.",
+        );
+      },
+    );
+
+    final UserCredential credential;
+    try {
+      credential = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: emailTextEditingController.text,
+        password: passwordTextEditingController.text,
+      );
+    } catch (errMesg) {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      AssistantMethods.displayToastMessage(
+        "Error: $errMesg",
+        context,
+      );
+      return;
+    }
+
+    final firebaseUser = credential.user;
+    if (firebaseUser != null) {
+      final Map<String, dynamic> userDataMap = {
+        "name": nameTextEditingController.text.trim(),
+        "phone": phoneTextEditingController.text.trim(),
+        "email": emailTextEditingController.text.trim(),
+      };
+
+      userRef.child(firebaseUser.uid).set(userDataMap);
+
+      AssistantMethods.displayToastMessage(
+        "Felicitari. Contul dumneavoastra a fost creat cu succes",
+        context,
+      );
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        MainScreen.idScreen,
+        (route) => false,
+      );
+      return;
+    }
+
+    Navigator.pop(context);
+    AssistantMethods.displayToastMessage(
+      "Utilizatorul nu a putut fi creat",
+      context,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +100,6 @@ class RegisterScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(8),
-        // width: double.infinity,
         child: Column(
           children: <Widget>[
             const SizedBox(
@@ -130,12 +203,9 @@ class RegisterScreen extends StatelessWidget {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      // print("Register Clicked");
-
-                      // check the fields
-                      bool emailValid = RegExp(
-                              r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
-                          .hasMatch(emailTextEditingController.text);
+                      final bool emailValid = RegExp(
+                        r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+                      ).hasMatch(emailTextEditingController.text);
                       if (nameTextEditingController.text.length < 4) {
                         AssistantMethods.displayToastMessage(
                           "Numele trebuie sa contina cel putin 4 caractere",
@@ -164,7 +234,6 @@ class RegisterScreen extends StatelessWidget {
                         return;
                       }
 
-                      // register the user
                       registerNewUser(context);
                     },
                     child: const SizedBox(
@@ -187,10 +256,11 @@ class RegisterScreen extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                print("Login Clicked");
-
                 Navigator.pushNamedAndRemoveUntil(
-                    context, LoginScreen.idScreen, (route) => false);
+                  context,
+                  LoginScreen.idScreen,
+                  (route) => false,
+                );
               },
               child: const SizedBox(
                 height: 50,
@@ -198,7 +268,6 @@ class RegisterScreen extends StatelessWidget {
                   child: Text(
                     "Ai deja un cont? Autentifica-te aici.",
                     style: TextStyle(
-                      // color: Colors.white,
                       fontSize: 16,
                       fontFamily: "Bold",
                     ),
@@ -210,59 +279,5 @@ class RegisterScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  void registerNewUser(BuildContext context) async {
-    showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return ProgressDialog(
-            message: "Se inregistreaza. Va rugam asteptati.",
-          );
-        });
-    final firebaseUser = (await _firebaseAuth
-            .createUserWithEmailAndPassword(
-      email: emailTextEditingController.text,
-      password: passwordTextEditingController.text,
-    )
-            .catchError((errMesg) {
-      // inchide panoul de loading
-      Navigator.pop(context);
-      AssistantMethods.displayToastMessage(
-        "Error: $errMesg",
-        context,
-      );
-    }))
-        .user;
-
-    if (firebaseUser != null) // user created
-    {
-      // save user info to database
-      Map userDataMap = {
-        "name": nameTextEditingController.text.trim(),
-        "phone": phoneTextEditingController.text.trim(),
-        "email": emailTextEditingController.text.trim(),
-      };
-
-      // print(
-      //     "Name: ${nameTextEditingController.text}, Phone: ${phoneTextEditingController.text}, Email: ${emailTextEditingController.text}");
-
-      userRef.child(firebaseUser.uid).set(userDataMap);
-
-      // display success message
-      AssistantMethods.displayToastMessage(
-          "Felicitari. Contul dumneavoastra a fost creat cu succes", context);
-
-      // load the MainScreen
-      Navigator.pushNamedAndRemoveUntil(
-          context, MainScreen.idScreen, (route) => false);
-      return;
-    }
-
-    // inchide panoul de loading
-    Navigator.pop(context);
-    // error occured - display error message
-    AssistantMethods.displayToastMessage(
-        "Utilizatorul nu a putut fi creat", context);
   }
 }

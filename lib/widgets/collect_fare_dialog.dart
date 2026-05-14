@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '/assistants/assistant_methods.dart';
-
 class CollectFareDialog extends StatelessWidget {
   final String paymentMethod;
   final int fareAmount;
@@ -60,11 +58,14 @@ class CollectFareDialog extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: RaisedButton(
+              child: ElevatedButton(
                 onPressed: () async {
                   Navigator.pop(context, 'close');
                 },
-                color: Colors.green,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: const [

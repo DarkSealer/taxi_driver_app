@@ -39,7 +39,7 @@ class MainScreen extends StatefulWidget {
   _MainScreenState createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
+class _MainScreenState extends State<MainScreen> {
   final Completer<GoogleMapController> _controllerGoogleMap = Completer();
   late GoogleMapController newGoogleMapController;
   GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
@@ -570,7 +570,6 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
             right: 0,
             bottom: 0,
             child: AnimatedSize(
-              vsync: this,
               curve: Curves.bounceIn,
               duration: const Duration(milliseconds: 160),
               child: Container(
@@ -736,7 +735,6 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
             right: 0,
             bottom: 0,
             child: AnimatedSize(
-              vsync: this,
               curve: Curves.bounceIn,
               duration: const Duration(milliseconds: 160),
               child: Container(
@@ -1332,18 +1330,23 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                         // ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: RaisedButton(
+                          child: ElevatedButton(
                             onPressed: () {
-                              // call the phone number
-                              launch(('tel://${driverPhone}'));
+                              launchUrl(
+                                Uri.parse('tel:$driverPhone'),
+                                mode: LaunchMode.externalApplication,
+                              );
                             },
-                            color: Colors.pink,
-                            child: Padding(
-                              padding: const EdgeInsets.all(17),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.pink,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Padding(
+                              padding: EdgeInsets.all(17),
                               child: Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceEvenly,
-                                children: const [
+                                children: [
                                   Text(
                                     'Call Driver',
                                     style: TextStyle(
@@ -1383,7 +1386,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
     showDialog(
         context: context,
-        builder: (BuildContext context) => ProgressDialog(
+        builder: (BuildContext context) => const ProgressDialog(
               message: "Please wait...",
             ));
 
@@ -1624,7 +1627,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         .child('type')
         .get()
         .then((snap) async {
-      if (await snap.value != null) {
+      if (snap.value != null) {
         String carType = snap.value.toString();
 
         // daca este acelasi tip de uber cerut de client, notifica soferul
@@ -1656,7 +1659,6 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         String token = snap.value.toString();
         AssistantMethods.sendNotificationToDriver(
           token,
-          context,
           rideRequestRef!.key!,
         );
       } else {
@@ -1665,7 +1667,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
       // se porneste timerul pentru driverul care este ales
       const oneSecondPassed = Duration(seconds: 1);
-      var timer = Timer.periodic(oneSecondPassed, (timer) {
+      Timer.periodic(oneSecondPassed, (timer) {
         if (state != "requesting") {
           driversRef.child(driver.key).child('newRide').set('cancelled');
           cancelTimer(driver, timer);

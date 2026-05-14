@@ -53,20 +53,22 @@ class _AboutScreenState extends State<AboutScreen> {
                 const SizedBox(
                   height: 40,
                 ),
-                FlatButton(
+                TextButton(
                   onPressed: () {
                     Navigator.pushNamedAndRemoveUntil(
                         context, MainScreen.idScreen, (route) => false);
                   },
+                  style: TextButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   child: const Text(
                     'Go Back',
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.black,
                     ),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ],

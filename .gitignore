@@ -38,6 +38,7 @@ lib/generated_plugin_registrant.dart
 app.*.symbols
 
 .env
+ios/Flutter/Secret.xcconfig
 
 # Obfuscation related
 app.*.map.json

@@ -65,6 +65,13 @@ flutter run \
 See [`.env.example`](.env.example) for a template and [SECURITY.md](SECURITY.md)
 for rotation guidance if keys were ever exposed.
 
+Native Maps SDK keys are loaded locally (not committed):
+
+- **Android**: add `MAPS_API_KEY=...` to `android/local.properties`
+  (already gitignored).
+- **iOS**: copy `ios/Flutter/Secret.xcconfig.example` to
+  `ios/Flutter/Secret.xcconfig` and set `MAPS_API_KEY=...`.
+
 ---
 
 ## Prerequisites

@@ -20,6 +20,7 @@ def flutterVersionName = localProperties.getProperty('flutter.versionName')
 if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
+def mapsApiKey = localProperties.getProperty('MAPS_API_KEY', '')
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
@@ -48,6 +49,9 @@ android {
         targetSdkVersion 30
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        manifestPlaceholders = [
+            GOOGLE_MAPS_API_KEY: mapsApiKey
+        ]
     }
 
     buildTypes {

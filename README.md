@@ -72,6 +72,28 @@ Native Maps SDK keys are loaded locally (not committed):
 - **iOS**: copy `ios/Flutter/Secret.xcconfig.example` to
   `ios/Flutter/Secret.xcconfig` and set `MAPS_API_KEY=...`.
 
+### Local secure setup (once)
+
+1. Add `MAPS_API_KEY=...` in `android/local.properties`.
+2. Copy `ios/Flutter/Secret.xcconfig.example` to
+   `ios/Flutter/Secret.xcconfig`.
+3. Set `MAPS_API_KEY=...` in `ios/Flutter/Secret.xcconfig`.
+4. Run with dart defines for runtime REST + FCM config:
+
+```bash
+flutter run \
+  --dart-define=MAPS_API_KEY=YOUR_GOOGLE_MAPS_KEY \
+  --dart-define=FCM_AUTH_HEADER=key=YOUR_SERVER_KEY \
+  --dart-define=PLACES_LANGUAGE=ro
+```
+
+### Key restriction checklist
+
+- Restrict Maps keys by platform (Android app, iOS bundle id, web referrer).
+- Restrict API usage to only required Google APIs.
+- Rotate keys immediately if they were ever committed publicly.
+- Prefer FCM HTTP v1 (OAuth2) over legacy server keys in production.
+
 ---
 
 ## Prerequisites
@@ -88,7 +110,10 @@ Native Maps SDK keys are loaded locally (not committed):
 
 ```bash
 flutter pub get
-flutter run --dart-define=MAPS_API_KEY=... --dart-define=FCM_AUTH_HEADER=...
+flutter run \
+  --dart-define=MAPS_API_KEY=... \
+  --dart-define=FCM_AUTH_HEADER=... \
+  --dart-define=PLACES_LANGUAGE=ro
 ```
 
 ---
